@@ -174,6 +174,12 @@ $(function() {
 		<td valign="top"><code>false</code></td>
 	</tr>
 	<tr>
+		<td valign="top"><code>dropdownDirection</code></td>
+		<td valign="top">The direction in which the dropdown opens. Can be set to 'up', 'down' or 'auto'. In auto mode, the dropdown opens down if there is enough room for it to be completely visible, opening upwards otherwise.</td>
+		<td valign="top"><code>string</code></td>
+		<td valign="top"><code>'auto'</code></td>
+	</tr>
+	<tr>
 		<td valign="top"><code>dropdownParent</code></td>
 		<td valign="top">The element the dropdown menu is appended to. This should be <code>'body'</code> or <code>null</code>. If null, the dropdown will be appended as a child of the Selectize control.</td>
 		<td valign="top"><code>string</code></td>
