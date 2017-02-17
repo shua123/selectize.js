@@ -2291,7 +2291,7 @@
 				width : $control.outerWidth(),
 				left  : offset.left,
 				top   : (direction === 'down') ?  offset.top : 'auto',
-				bottom: (direction === 'down') ? 'auto'  : offset.top,
+				bottom: (direction === 'down') ? 'auto'  : 0,
 			}).toggleClass('dropdown-up', (direction === 'down') ? false : true);
 		},
 	
