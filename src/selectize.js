@@ -1441,11 +1441,23 @@ $.extend(Selectize.prototype, {
 	 * @param {boolean} silent
 	 */
 	addItems: function(values, silent) {
+		this.buffer = document.createDocumentFragment();
+
+		var childNodes = this.$control[0].childNodes;
+		for (var i = 0; i < childNodes.length; i++) {
+			this.buffer.appendChild(childNodes[i]);
+		}
+
 		var items = $.isArray(values) ? values : [values];
 		for (var i = 0, n = items.length; i < n; i++) {
 			this.isPending = (i < n - 1);
 			this.addItem(items[i], silent);
 		}
+
+		var control = this.$control[0];
+		control.insertBefore(this.buffer, control.firstChild);
+
+		this.buffer = null;
 	},
 
 	/**
@@ -1498,13 +1510,16 @@ $.extend(Selectize.prototype, {
 				// hide the menu if the maximum number of items have been selected or no options are left
 				if (!$options.length || self.isFull()) {
 					self.close();
-				} else {
+				} else if (!self.isPending) {
 					self.positionDropdown();
 				}
 
 				self.updatePlaceholder();
 				self.trigger('item_add', value, $item);
-				self.updateOriginalInput({silent: silent});
+
+				if (!self.isPending) {
+					self.updateOriginalInput({silent: silent});
+				}
 			}
 		});
 	},
@@ -1799,7 +1814,7 @@ $.extend(Selectize.prototype, {
 		offset.top += $control.outerHeight(true);
 
 		this.$dropdown.css({
-			width : $control.outerWidth(),
+			width : $control[0].getBoundingClientRect().width,
 			left  : offset.left,
 			top   : (direction === 'down') ?  offset.top : 'auto',
 			bottom: (direction === 'down') ? 'auto'  : offset.top,
@@ -1836,11 +1851,15 @@ $.extend(Selectize.prototype, {
 	 */
 	insertAtCaret: function($el) {
 		var caret = Math.min(this.caretPos, this.items.length);
+		var el = $el[0];
+		var target = this.buffer || this.$control[0];
+
 		if (caret === 0) {
-			this.$control.prepend($el);
+			target.insertBefore(el, target.firstChild);
 		} else {
-			$(this.$control[0].childNodes[caret]).before($el);
+			target.insertBefore(el, target.childNodes[caret]);
 		}
+
 		this.setCaret(caret + 1);
 	},
 
@@ -2075,6 +2094,11 @@ $.extend(Selectize.prototype, {
 
 		self.$control_input.removeData('grow');
 		self.$input.removeData('selectize');
+
+		if (--Selectize.count == 0 && Selectize.$testInput) {
+			Selectize.$testInput.remove();
+			Selectize.$testInput = undefined;
+		}
 
 		$(window).off(eventNS);
 		$(document).off(eventNS);
