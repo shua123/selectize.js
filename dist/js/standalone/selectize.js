@@ -1011,16 +1011,20 @@
 			return 0;
 		}
 	
-		var $test = $('<test>').css({
-			position: 'absolute',
-			top: -99999,
-			left: -99999,
-			width: 'auto',
-			padding: 0,
-			whiteSpace: 'pre'
-		}).text(str).appendTo('body');
+		if (!Selectize.$testInput) {
+			Selectize.$testInput = $('<span />').css({
+				position: 'absolute',
+				top: -99999,
+				left: -99999,
+				width: 'auto',
+				padding: 0,
+				whiteSpace: 'pre'
+			}).appendTo('body');
+		}
 	
-		transferStyles($parent, $test, [
+		Selectize.$testInput.text(str);
+	
+		transferStyles($parent, Selectize.$testInput, [
 			'letterSpacing',
 			'fontSize',
 			'fontFamily',
@@ -1028,10 +1032,7 @@
 			'textTransform'
 		]);
 	
-		var width = $test.width();
-		$test.remove();
-	
-		return width;
+		return Selectize.$testInput.width();
 	};
 	
 	/**
@@ -1059,9 +1060,10 @@
 			if (e.type && e.type.toLowerCase() === 'keydown') {
 				keyCode = e.keyCode;
 				printable = (
-					(keyCode >= 97 && keyCode <= 122) || // a-z
-					(keyCode >= 65 && keyCode <= 90)  || // A-Z
 					(keyCode >= 48 && keyCode <= 57)  || // 0-9
+					(keyCode >= 65 && keyCode <= 90)   || // a-z
+					(keyCode >= 96 && keyCode <= 111)  || // numpad 0-9, numeric operators
+					(keyCode >= 186 && keyCode <= 222) || // semicolon, equal, comma, dash, etc.
 					keyCode === 32 // space
 				);
 	
@@ -2566,11 +2568,23 @@
 		 * @param {boolean} silent
 		 */
 		addItems: function(values, silent) {
+			this.buffer = document.createDocumentFragment();
+	
+			var childNodes = this.$control[0].childNodes;
+			for (var i = 0; i < childNodes.length; i++) {
+				this.buffer.appendChild(childNodes[i]);
+			}
+	
 			var items = $.isArray(values) ? values : [values];
 			for (var i = 0, n = items.length; i < n; i++) {
 				this.isPending = (i < n - 1);
 				this.addItem(items[i], silent);
 			}
+	
+			var control = this.$control[0];
+			control.insertBefore(this.buffer, control.firstChild);
+	
+			this.buffer = null;
 		},
 	
 		/**
@@ -2623,13 +2637,16 @@
 					// hide the menu if the maximum number of items have been selected or no options are left
 					if (!$options.length || self.isFull()) {
 						self.close();
-					} else {
+					} else if (!self.isPending) {
 						self.positionDropdown();
 					}
 	
 					self.updatePlaceholder();
 					self.trigger('item_add', value, $item);
-					self.updateOriginalInput({silent: silent});
+	
+					if (!self.isPending) {
+						self.updateOriginalInput({silent: silent});
+					}
 				}
 			});
 		},
@@ -2924,7 +2941,7 @@
 			offset.top += $control.outerHeight(true);
 	
 			this.$dropdown.css({
-				width : $control.outerWidth(),
+				width : $control[0].getBoundingClientRect().width,
 				left  : offset.left,
 				top   : (direction === 'down') ?  offset.top : 'auto',
 				bottom: (direction === 'down') ? 'auto'  : offset.top,
@@ -2961,11 +2978,15 @@
 		 */
 		insertAtCaret: function($el) {
 			var caret = Math.min(this.caretPos, this.items.length);
+			var el = $el[0];
+			var target = this.buffer || this.$control[0];
+	
 			if (caret === 0) {
-				this.$control.prepend($el);
+				target.insertBefore(el, target.firstChild);
 			} else {
-				$(this.$control[0].childNodes[caret]).before($el);
+				target.insertBefore(el, target.childNodes[caret]);
 			}
+	
 			this.setCaret(caret + 1);
 		},
 	
@@ -3200,6 +3221,11 @@
 	
 			self.$control_input.removeData('grow');
 			self.$input.removeData('selectize');
+	
+			if (--Selectize.count == 0 && Selectize.$testInput) {
+				Selectize.$testInput.remove();
+				Selectize.$testInput = undefined;
+			}
 	
 			$(window).off(eventNS);
 			$(document).off(eventNS);
